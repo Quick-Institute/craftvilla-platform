@@ -8,27 +8,36 @@ import { useAuthStore } from "@/lib/store/authStore";
 import { useToastStore } from "@/lib/store/toastStore";
 import { useIsMounted } from "@/lib/useIsMounted";
 import { PRODUCTS } from "@/lib/data";
-import { Sun, Moon, Search, ShoppingBag, User as UserIcon, X } from "lucide-react";
+import {
+  Search,
+  ShoppingBag,
+  Sparkles,
+  Menu,
+  X,
+  User as UserIcon,
+  RotateCcw,
+} from "lucide-react";
 
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const mounted = useIsMounted();
   const { getTotalCount } = useCartStore();
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const { showToast } = useToastStore();
 
-  const [theme, setTheme] = useState<"light" | "dark">("light");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery.trim().toLowerCase());
-    }, 220);
+    }, 200);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
@@ -63,234 +72,249 @@ export default function Header() {
     }
   };
 
-  const toggleTheme = () => {
-    const next = theme === "light" ? "dark" : "light";
-    setTheme(next);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("craftvilla-theme", next);
-      document.documentElement.setAttribute("data-theme", next);
-    }
+  const handleOpenSearch = () => {
+    setIsSearchOpen(true);
+    setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 50);
   };
 
   const cartCount = mounted ? getTotalCount() : 0;
 
-  const handleSignOut = () => {
-    logout();
-    showToast("Signed out successfully");
-    router.push("/");
+  const isActive = (path: string) => {
+    if (path === "/catalog") return pathname.startsWith("/catalog");
+    if (path === "/artisans") return pathname.startsWith("/artisan");
+    if (path === "/customizer")
+      return pathname.includes("customize") || pathname.startsWith("/customizer");
+    if (path === "/hampers") return pathname.startsWith("/hamper");
+    if (path === "/track") return pathname.startsWith("/track");
+    if (path === "/account") return pathname.startsWith("/account") || pathname.startsWith("/login");
+    return pathname === path;
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-[#FAF8F5]/85 dark:bg-[#10132b]/85 backdrop-blur-md border-b border-stone-200/50 dark:border-stone-800/50 shadow-xs transition-colors">
-      <div className="bar max-w-[1120px] mx-auto px-4 py-2.5 flex items-center justify-between gap-4">
-        {/* Brand Logo */}
+    <header className="sticky top-0 z-50 bg-[#FBF7F0]/95 backdrop-blur-md border-b border-[#E2D5C4] transition-all">
+      <div className="w-full max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+        
+        {/* Brand Logo in Title-Case Serif Cormorant Garamond */}
         <Link
           href="/"
-          className="logo flex items-center gap-2 text-xl font-bold tracking-tight text-[var(--ink)] shrink-0"
+          className="text-[28px] sm:text-[32px] font-medium text-[#8a3a1f] hover:opacity-90 transition-opacity select-none leading-none tracking-tight flex items-center gap-1.5"
+          style={{ fontFamily: "var(--font-cormorant), var(--font-playfair), Georgia, serif" }}
           aria-label="CraftVilla Home"
         >
-          <span className="text-2xl" aria-hidden="true">🎨</span>
-          <span>Craft<b className="text-[var(--accent)]">Villa</b></span>
-          <span className="hidden sm:inline-block text-xs font-sans font-medium text-[var(--mut)] pl-1.5 ml-1.5 border-l border-[var(--line)]">
-            Artisan Gifts
-          </span>
+          <span>Craft</span> <span>Villa</span>
         </Link>
 
-        {/* Live Search Bar */}
-        <div ref={searchContainerRef} className="relative flex-1 max-w-xs md:max-w-sm hidden md:block">
-          <form onSubmit={handleSearchSubmit} className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--mut)]" />
-            <input
-              type="search"
-              placeholder="Search gifts, wood, batik..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setIsSearchOpen(true);
-              }}
-              onFocus={() => setIsSearchOpen(true)}
-              className="w-full pl-9 pr-8 py-1.5 text-xs rounded-full border border-[var(--line)] bg-[var(--bg)] text-[var(--ink)] focus:outline-hidden focus:border-[var(--accent)] transition-all"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--mut)] hover:text-[var(--ink)]"
-                aria-label="Clear search"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </form>
-
-          {/* Instant Search Dropdown Results */}
-          {isSearchOpen && debouncedQuery && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-[var(--surface)] border border-[var(--line)] rounded-xl shadow-lg p-2 z-50 overflow-hidden">
-              <div className="text-[11px] font-semibold text-[var(--mut)] px-2.5 py-1 uppercase tracking-wider">
-                Matching Crafts ({searchResults.length})
-              </div>
-              {searchResults.length > 0 ? (
-                <div className="space-y-1 mt-1">
-                  {searchResults.map((item) => (
-                    <Link
-                      key={item.id}
-                      href={`/products/${item.id}/customize`}
-                      onClick={() => setIsSearchOpen(false)}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--bg)] transition-colors group"
-                    >
-                      <div
-                        className="w-8 h-8 rounded-md flex items-center justify-center text-sm shrink-0"
-                        style={{ backgroundColor: item.bgColor }}
-                      >
-                        {item.emoji}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-[var(--ink)] truncate group-hover:text-[var(--accent)]">
-                          {item.name}
-                        </p>
-                        <p className="text-[11px] text-[var(--mut)] truncate">
-                          {item.artisanName} · LKR {item.basePrice.toLocaleString()}
-                        </p>
-                      </div>
-                    </Link>
-                  ))}
-                  <Link
-                    href={`/catalog?q=${encodeURIComponent(debouncedQuery)}`}
-                    onClick={() => setIsSearchOpen(false)}
-                    className="block text-center text-xs font-semibold text-[var(--accent)] py-2 border-t border-[var(--line)] mt-1 hover:underline"
-                  >
-                    View all catalog results →
-                  </Link>
-                </div>
-              ) : (
-                <div className="py-4 text-center text-xs text-[var(--mut)]">
-                  No crafts match &quot;{debouncedQuery}&quot;
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Main Navigation Links */}
-        <nav aria-label="Main Navigation" className="flex items-center gap-1 overflow-visible scrollbar-none">
-          <Link
-            href="/"
-            aria-current={pathname === "/" ? "page" : undefined}
-            className="text-xs font-medium px-2.5 py-1.5 rounded-full hover:bg-[var(--ink)]/5 transition-colors"
-          >
-            Home
-          </Link>
+        {/* Desktop Navigation Links: Exact Spec (SHOP, ARTISANS, ✦ CUSTOMIZER, HAMPERS, TRACK ORDER, SHOPPER, Cart) */}
+        <nav aria-label="Main Navigation" className="hidden lg:flex items-center gap-1.5 overflow-x-auto">
           <Link
             href="/catalog"
-            aria-current={pathname === "/catalog" ? "page" : undefined}
-            className="text-xs font-medium px-2.5 py-1.5 rounded-full hover:bg-[var(--ink)]/5 transition-colors"
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.1em] transition-all ${
+              isActive("/catalog")
+                ? "bg-[#3A2418] text-[#F4EDE2]"
+                : "text-[#7B6A5D] hover:text-[#3A2418] hover:bg-[#3A2418]/5"
+            }`}
           >
-            All Crafts
-          </Link>
-          <Link
-            href="/customizer"
-            aria-current={pathname.startsWith("/customiz") || pathname.includes("/customize") ? "page" : undefined}
-            className="text-xs font-medium px-2.5 py-1.5 rounded-full hover:bg-[var(--ink)]/5 transition-colors hidden sm:inline-flex"
-          >
-            Personalized Gifts
-          </Link>
-          <Link
-            href="/hampers"
-            aria-current={pathname === "/hampers" ? "page" : undefined}
-            className="text-xs font-medium px-2.5 py-1.5 rounded-full hover:bg-[var(--ink)]/5 transition-colors hidden sm:inline-flex"
-          >
-            Gift Hampers
-          </Link>
-          <Link
-            href="/artisans"
-            aria-current={pathname.startsWith("/artisans") ? "page" : undefined}
-            className="text-xs font-medium px-2.5 py-1.5 rounded-full hover:bg-[var(--ink)]/5 transition-colors hidden md:inline-flex"
-          >
-            Artisans
-          </Link>
-          <Link
-            href="/track"
-            aria-current={pathname.startsWith("/track") ? "page" : undefined}
-            className="text-xs font-medium px-2.5 py-1.5 rounded-full hover:bg-[var(--ink)]/5 transition-colors"
-          >
-            Track Order
+            SHOP
           </Link>
 
-          {/* User Profile Avatar / Role Action Button */}
+          <Link
+            href="/artisans"
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.1em] transition-all ${
+              isActive("/artisans")
+                ? "bg-[#3A2418] text-[#F4EDE2]"
+                : "text-[#7B6A5D] hover:text-[#3A2418] hover:bg-[#3A2418]/5"
+            }`}
+          >
+            ARTISANS
+          </Link>
+
+          <Link
+            href="/products/teak-name-plaque/customize"
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.1em] transition-all flex items-center gap-1 ${
+              isActive("/customizer")
+                ? "bg-[#B2533E] text-white"
+                : "text-[#B2533E] hover:bg-[#B2533E]/10"
+            }`}
+          >
+            <Sparkles className="w-3 h-3 text-[#B2533E] fill-current" />
+            <span>✦ CUSTOMIZER</span>
+          </Link>
+
+          <Link
+            href="/hampers"
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.1em] transition-all ${
+              isActive("/hampers")
+                ? "bg-[#3A2418] text-[#F4EDE2]"
+                : "text-[#7B6A5D] hover:text-[#3A2418] hover:bg-[#3A2418]/5"
+            }`}
+          >
+            HAMPERS
+          </Link>
+
+          <Link
+            href="/track"
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.1em] transition-all ${
+              isActive("/track")
+                ? "bg-[#3A2418] text-[#F4EDE2]"
+                : "text-[#7B6A5D] hover:text-[#3A2418] hover:bg-[#3A2418]/5"
+            }`}
+          >
+            TRACK ORDER
+          </Link>
+
+          {/* SHOPPER Link */}
           {mounted && user ? (
-            <div className="flex items-center gap-1.5 ml-1 pl-1 border-l border-[var(--line)]">
-              {user.role === "ARTISAN" && (
-                <Link
-                  href="/artisan"
-                  aria-current={pathname.startsWith("/artisan") ? "page" : undefined}
-                  className="btn gold text-xs py-1 px-2.5 rounded-full whitespace-nowrap shadow-xs"
-                >
-                  Artisan Studio
-                </Link>
-              )}
-              {user.role === "ADMIN" && (
-                <Link
-                  href="/admin"
-                  aria-current={pathname.startsWith("/admin") ? "page" : undefined}
-                  className="btn gold text-xs py-1 px-2.5 rounded-full whitespace-nowrap shadow-xs"
-                >
-                  Admin Panel
-                </Link>
-              )}
-              {user.role === "CUSTOMER" && (
-                <Link
-                  href="/account"
-                  aria-current={pathname === "/account" ? "page" : undefined}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-[var(--ink)] px-2.5 py-1 rounded-full bg-[var(--bg)] hover:border-[var(--line)] border border-transparent transition-colors"
-                >
-                  <UserIcon className="w-3.5 h-3.5 text-[var(--accent)]" />
-                  <span>{user.name.split(" ")[0]}</span>
-                </Link>
-              )}
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="text-[11px] text-[var(--mut)] hover:text-[var(--ink)] p-1 transition-colors"
-                title="Sign out"
-              >
-                Exit
-              </button>
-            </div>
+            <Link
+              href="/account"
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.1em] transition-all flex items-center gap-1 ${
+                isActive("/account")
+                  ? "bg-[#3A2418] text-[#F4EDE2]"
+                  : "text-[#7B6A5D] hover:text-[#3A2418] hover:bg-[#3A2418]/5"
+              }`}
+            >
+              <UserIcon className="w-3.5 h-3.5" />
+              <span>SHOPPER</span>
+            </Link>
           ) : (
             <Link
               href="/login"
-              aria-current={pathname === "/login" ? "page" : undefined}
-              className="btn ghost text-xs py-1.5 px-3 rounded-full ml-1"
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.1em] transition-all flex items-center gap-1 ${
+                isActive("/account")
+                  ? "bg-[#3A2418] text-[#F4EDE2]"
+                  : "text-[#7B6A5D] hover:text-[#3A2418] hover:bg-[#3A2418]/5"
+              }`}
             >
-              Sign In
+              <UserIcon className="w-3.5 h-3.5" />
+              <span>SHOPPER</span>
             </Link>
           )}
 
-          {/* Cart Trigger Badge */}
+          {/* Search Toggle Icon */}
+          <div ref={searchContainerRef} className="relative">
+            <button
+              type="button"
+              onClick={handleOpenSearch}
+              className="p-2 text-[#7B6A5D] hover:text-[#3A2418] hover:bg-[#3A2418]/5 rounded-full transition-colors cursor-pointer"
+              aria-label="Search catalog"
+            >
+              <Search className="w-4 h-4" />
+            </button>
+
+            {isSearchOpen && (
+              <form
+                onSubmit={handleSearchSubmit}
+                className="absolute right-0 top-full mt-2 w-72 bg-[#FBF7F0] border border-[#E2D5C4] rounded-2xl p-2 shadow-xl z-50 flex items-center"
+              >
+                <Search className="w-3.5 h-3.5 text-[#7B6A5D] ml-2 mr-2" />
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search craft, maker, clay..."
+                  className="w-full text-xs bg-transparent text-[#3A2418] placeholder:text-[#7B6A5D]/60 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  className="px-2 py-1 bg-[#B2533E] text-white text-[10px] font-bold rounded-lg uppercase tracking-wider ml-1"
+                >
+                  Go
+                </button>
+              </form>
+            )}
+          </div>
+
+          {/* Cart Pill Button */}
           <Link
             href="/cart"
-            className="cartbtn flex items-center gap-1.5 text-xs font-bold bg-[var(--ink)] text-[var(--bg)] py-1.5 px-3 rounded-full ml-1 hover:opacity-90 transition-opacity"
-            aria-label={`Shopping cart with ${cartCount} items`}
+            className="ml-2 inline-flex items-center gap-1.5 bg-[#3A2418] text-[#F4EDE2] hover:bg-[#241913] px-4 py-2 rounded-full text-xs font-bold tracking-wider transition-all shadow-xs"
+            aria-label={`Cart with ${cartCount} items`}
           >
             <ShoppingBag className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Cart</span>
-            <b id="cc" className="bg-[var(--accent)] text-[var(--accent-ink)] text-[11px] px-1.5 py-0.2 rounded-full font-extrabold ml-0.5">
+            <span>Cart</span>
+            <b
+              id="cc"
+              className="bg-[#B2533E] text-white rounded-full px-1.5 py-0.2 text-[11px] font-bold min-w-[18px] text-center ml-0.5"
+            >
               {cartCount}
             </b>
           </Link>
+        </nav>
 
-          {/* Theme Toggle Button */}
+        {/* Mobile Header Controls */}
+        <div className="flex lg:hidden items-center gap-2.5">
+          <Link
+            href="/cart"
+            className="inline-flex items-center gap-1.5 bg-[#3A2418] text-[#F4EDE2] px-3 py-1.5 rounded-full text-xs font-bold tracking-wider"
+          >
+            <ShoppingBag className="w-3.5 h-3.5" />
+            <span className="bg-[#B2533E] text-white rounded-full px-1.5 text-[11px]">
+              {cartCount}
+            </span>
+          </Link>
+
           <button
             type="button"
-            onClick={toggleTheme}
-            className="p-1.5 rounded-full text-[var(--mut)] hover:text-[var(--ink)] hover:bg-[var(--ink)]/5 transition-colors"
-            aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
-            title="Toggle theme"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-1.5 text-[#3A2418] hover:text-[#B2533E] transition-colors"
+            aria-label="Toggle navigation menu"
           >
-            {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
-        </nav>
+        </div>
+
       </div>
+
+      {/* Mobile Drawer Menu */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden border-t border-[#E2D5C4] bg-[#FBF7F0] px-4 py-4 space-y-2">
+          <Link
+            href="/catalog"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 text-xs font-bold uppercase tracking-wider text-[#3A2418]"
+          >
+            SHOP
+          </Link>
+          <Link
+            href="/artisans"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 text-xs font-bold uppercase tracking-wider text-[#3A2418]"
+          >
+            ARTISANS
+          </Link>
+          <Link
+            href="/products/teak-name-plaque/customize"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 text-xs font-bold uppercase tracking-wider text-[#B2533E] flex items-center gap-1"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-[#B2533E]" />
+            <span>✦ CUSTOMIZER</span>
+          </Link>
+          <Link
+            href="/hampers"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 text-xs font-bold uppercase tracking-wider text-[#3A2418]"
+          >
+            HAMPERS
+          </Link>
+          <Link
+            href="/track"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 text-xs font-bold uppercase tracking-wider text-[#3A2418]"
+          >
+            TRACK ORDER
+          </Link>
+          <Link
+            href={user ? "/account" : "/login"}
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 text-xs font-bold uppercase tracking-wider text-[#7B6A5D]"
+          >
+            SHOPPER
+          </Link>
+        </div>
+      )}
     </header>
   );
 }

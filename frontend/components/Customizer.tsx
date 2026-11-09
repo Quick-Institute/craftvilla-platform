@@ -8,7 +8,7 @@ import { formatLKR } from "@/lib/utils";
 import { useCartStore } from "@/lib/store/cartStore";
 import { useToastStore } from "@/lib/store/toastStore";
 import PlaquePreview from "./PlaquePreview";
-import { UploadCloud, CheckCircle2, Clock, Sparkles, AlertCircle } from "lucide-react";
+import { UploadCloud, CheckCircle2, Clock, Sparkles, AlertCircle, ArrowRight } from "lucide-react";
 
 interface CustomizerProps {
   product: Product;
@@ -25,7 +25,7 @@ export default function Customizer({ product }: CustomizerProps) {
   const { addItem } = useCartStore();
   const { showToast } = useToastStore();
 
-  const [text, setText] = useState<string>("");
+  const [text, setText] = useState<string>("For Amma, with endless love");
   const [selectedFont, setSelectedFont] = useState<string>(FONTS[0].family);
   const [selectedFinishIndex, setSelectedFinishIndex] = useState<number>(0);
   const [selectedDimension, setSelectedDimension] = useState(DIMENSION_OPTIONS[0]);
@@ -81,17 +81,17 @@ export default function Customizer({ product }: CustomizerProps) {
   const processFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = () => {
-      const img = new Image();
+      const img = new window.Image();
       img.onload = () => {
         if (img.width < 600 || img.height < 600) {
           setImageNote({
-            text: `Image too small (${img.width} × ${img.height} px). Minimum required: 600 × 600 px.`,
+            text: `Image resolution too small (${img.width} × ${img.height} px). Minimum required: 600 × 600 px.`,
             type: "bad",
           });
           setUploadedImage(null);
         } else {
           setImageNote({
-            text: `Sharp resolution (${img.width} × ${img.height} px) verified for engraving.`,
+            text: `High clarity resolution (${img.width} × ${img.height} px) verified for laser engraving.`,
             type: "good",
           });
           setUploadedImage(reader.result as string);
@@ -147,19 +147,22 @@ export default function Customizer({ product }: CustomizerProps) {
   };
 
   return (
-    <div className="split">
-      {/* Visual Preview Left Column (Sticky) */}
-      <div className="lg:sticky lg:top-24 space-y-3">
-        <div className="flex items-center justify-between text-xs text-[var(--mut)] mb-1">
-          <span className="font-semibold uppercase tracking-wider text-[var(--ink)] flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5 text-[var(--accent)]" />
-            <span>Live 1:1 Rendering Canvas</span>
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* ─────────────────────────────────────────────────────────────
+          LEFT COLUMN: LIVE 1:1 RENDERING CANVAS (Sticky Preview)
+          ───────────────────────────────────────────────────────────── */}
+      <div className="lg:col-span-6 lg:sticky lg:top-24 space-y-4">
+        <div className="flex items-center justify-between text-xs text-[#7b6a5d] px-1">
+          <span className="font-semibold uppercase tracking-wider text-[#3a2418] flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-[#b4532f]" />
+            <span>Live 1:1 Proof Canvas</span>
           </span>
-          <span className="bg-[var(--surface)] px-2 py-0.5 rounded-full border border-[var(--line)]">
+          <span className="bg-[#fbf7f0] border border-[#e2d5c4] px-3 py-1 rounded-full font-medium">
             {selectedDimension.label.split(" · ")[0]}
           </span>
         </div>
 
+        {/* Live Plaque Canvas */}
         <PlaquePreview
           text={text}
           fontFamily={selectedFont}
@@ -167,27 +170,42 @@ export default function Customizer({ product }: CustomizerProps) {
           imageUrl={uploadedImage}
         />
 
-        <div className="panel bg-[var(--surface)]/80 text-xs text-[var(--mut)] flex items-center justify-between p-3.5 rounded-xl">
+        {/* Info Pill Card */}
+        <div className="bg-[#fbf7f0] border border-[#e2d5c4] text-xs text-[#7b6a5d] flex items-center justify-between p-4 rounded-[20px] shadow-xs">
           <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-[var(--accent)]" />
+            <Clock className="w-4 h-4 text-[#b4532f]" />
             <span>
-              Estimated Crafting: <b>{calculatedLeadDays} business days</b>
+              Estimated Crafting: <b className="text-[#3a2418]">{calculatedLeadDays} business days</b>
             </span>
           </div>
-          <span className="text-[var(--ok)] font-medium">
+          <span className="text-[#5f6b35] font-semibold">
             100% Plantation Timber
           </span>
         </div>
       </div>
 
-      {/* Control Panel Right Column */}
-      <div className="panel space-y-4">
-        <h3 className="text-xl">Customization Specifications</h3>
+      {/* ─────────────────────────────────────────────────────────────
+          RIGHT COLUMN: CONTROL PANEL SPECIFICATIONS (Soft Rounded Card)
+          ───────────────────────────────────────────────────────────── */}
+      <div className="lg:col-span-6 bg-[#fbf7f0] border-[1.5px] border-[#e2d5c4] rounded-[30px] p-6 sm:p-8 space-y-5 shadow-xs">
+        <h2
+          className="text-2xl font-semibold text-[#3a2418] pb-3 border-b border-[#e2d5c4]"
+          style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+        >
+          Customization Studio
+        </h2>
 
         {/* Dimension Select */}
         <div>
-          <label htmlFor="dim">Heirloom Dimensions</label>
-          <select id="dim" value={selectedDimension.id} onChange={handleDimensionChange}>
+          <label htmlFor="dim" className="text-xs font-bold uppercase tracking-wider text-[#7b6a5d] block mb-1">
+            Heirloom Dimensions
+          </label>
+          <select
+            id="dim"
+            value={selectedDimension.id}
+            onChange={handleDimensionChange}
+            className="w-full text-xs p-3 bg-[#fbf7f0] border-[1.5px] border-[#e2d5c4] focus:border-[#b4532f] rounded-[16px] text-[#3a2418] focus:outline-none transition-colors"
+          >
             {DIMENSION_OPTIONS.map((dim) => (
               <option key={dim.id} value={dim.id}>
                 {dim.label}
@@ -196,33 +214,44 @@ export default function Customizer({ product }: CustomizerProps) {
           </select>
         </div>
 
-        {/* Inscription Text */}
+        {/* Inscription Text Input */}
         <div>
-          <div className="flex justify-between items-center">
-            <label htmlFor="txt" className="mb-0">Custom Inscription Text</label>
-            <span className="text-xs text-[var(--mut)]" id="cnt">
-              <b className={text.length >= 40 ? "text-red-500" : "text-[var(--ink)]"}>
+          <div className="flex justify-between items-center mb-1">
+            <label htmlFor="txt" className="text-xs font-bold uppercase tracking-wider text-[#7b6a5d] block mb-0">
+              Custom Inscription Text
+            </label>
+            <span className="text-xs text-[#7b6a5d]">
+              <b className={text.length >= 40 ? "text-red-500" : "text-[#3a2418]"}>
                 {text.length}
               </b>
               /40 chars
             </span>
           </div>
-          <input
-            type="text"
-            id="txt"
-            value={text}
-            onChange={handleTextChange}
-            maxLength={40}
-            placeholder="e.g. For Thaths, with love · 2026"
-            className="mt-1.5"
-            aria-describedby="cnt"
-          />
+          <div className="flex items-center bg-[#f4ede2] px-3.5 py-2.5 rounded-[16px] border border-[#e2d5c4] focus-within:border-[#b4532f] shadow-xs">
+            <Sparkles className="w-4 h-4 text-[#b4532f] mr-2 shrink-0" />
+            <input
+              type="text"
+              id="txt"
+              value={text}
+              onChange={handleTextChange}
+              maxLength={40}
+              placeholder="e.g. For Amma, with endless love"
+              className="w-full text-xs text-[#3a2418] bg-transparent focus:outline-none border-none p-0 font-sans"
+            />
+          </div>
         </div>
 
-        {/* Font Style */}
+        {/* Font Style Selector */}
         <div>
-          <label htmlFor="font">Inscription Font Style</label>
-          <select id="font" value={selectedFont} onChange={handleFontChange}>
+          <label htmlFor="font" className="text-xs font-bold uppercase tracking-wider text-[#7b6a5d] block mb-1">
+            Inscription Font Style
+          </label>
+          <select
+            id="font"
+            value={selectedFont}
+            onChange={handleFontChange}
+            className="w-full text-xs p-3 bg-[#fbf7f0] border-[1.5px] border-[#e2d5c4] focus:border-[#b4532f] rounded-[16px] text-[#3a2418] focus:outline-none transition-colors"
+          >
             {FONTS.map((font) => (
               <option key={font.id} value={font.family}>
                 {font.name}
@@ -231,15 +260,17 @@ export default function Customizer({ product }: CustomizerProps) {
           </select>
         </div>
 
-        {/* Wood Finish Stain */}
+        {/* Wood Finish Stain Swatches */}
         <div>
-          <div className="flex justify-between items-center mb-1.5">
-            <label className="mb-0">Material Stain &amp; Finish</label>
-            <span className="text-xs font-semibold text-[var(--ink)]">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#7b6a5d]">
+              Material Stain &amp; Finish
+            </span>
+            <span className="text-xs font-semibold text-[#3a2418]">
               {selectedFinish.name} Stain
             </span>
           </div>
-          <div className="sw" role="radiogroup" aria-label="Wood finish swatches">
+          <div className="flex gap-2.5" role="radiogroup" aria-label="Wood finish swatches">
             {FINISHES.map((finish, idx) => (
               <button
                 key={finish.id}
@@ -248,6 +279,11 @@ export default function Customizer({ product }: CustomizerProps) {
                 aria-checked={selectedFinishIndex === idx}
                 aria-label={`${finish.name} stain`}
                 onClick={() => handleFinishSelect(idx)}
+                className={`w-9 h-9 rounded-full border-2 transition-all cursor-pointer shadow-xs ${
+                  selectedFinishIndex === idx
+                    ? "ring-2 ring-[#3a2418] ring-offset-2 scale-105"
+                    : "border-white/80 hover:scale-105"
+                }`}
                 style={{
                   background: `linear-gradient(135deg, ${finish.startColor}, ${finish.endColor})`,
                 }}
@@ -258,7 +294,9 @@ export default function Customizer({ product }: CustomizerProps) {
 
         {/* Image Dropzone Upload */}
         <div>
-          <label htmlFor="img">Reference Photo or Crest (Optional +LKR 600)</label>
+          <label className="text-xs font-bold uppercase tracking-wider text-[#7b6a5d] block mb-1">
+            Reference Photo or Crest (Optional +LKR 600)
+          </label>
           <div
             onDragOver={(e) => {
               e.preventDefault();
@@ -266,19 +304,19 @@ export default function Customizer({ product }: CustomizerProps) {
             }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors ${
+            className={`border-2 border-dashed rounded-[20px] p-4 text-center cursor-pointer transition-colors ${
               isDragging
-                ? "border-[var(--accent)] bg-[var(--accent)]/5"
-                : "border-[var(--line)] hover:border-[var(--ink)]"
+                ? "border-[#b4532f] bg-[#b4532f]/5"
+                : "border-[#e2d5c4] hover:border-[#3a2418] bg-white/50"
             }`}
             onClick={() => document.getElementById("img")?.click()}
           >
-            <UploadCloud className="w-6 h-6 text-[var(--mut)] mx-auto mb-1" />
-            <p className="text-xs font-bold text-[var(--ink)]">
-              {uploadedImage ? "Artwork attached! Click to replace" : "Click to browse or drop reference photo"}
+            <UploadCloud className="w-6 h-6 text-[#b4532f] mx-auto mb-1" />
+            <p className="text-xs font-bold text-[#3a2418]">
+              {uploadedImage ? "✓ Artwork attached! Click to change" : "Click to browse or drop reference photo"}
             </p>
-            <p className="text-[11px] text-[var(--mut)] mt-0.5">
-              JPG or PNG (Min 600 × 600 px)
+            <p className="text-[11px] text-[#7b6a5d] mt-0.5">
+              JPG or PNG (Min 600 × 600 px for laser etching)
             </p>
             <input
               type="file"
@@ -290,12 +328,12 @@ export default function Customizer({ product }: CustomizerProps) {
           </div>
 
           <div
-            className={`note mt-1.5 flex items-center gap-1.5 text-xs ${
+            className={`mt-1.5 flex items-center gap-1.5 text-xs ${
               imageNote.type === "bad"
-                ? "bad text-red-600"
+                ? "text-red-600 font-semibold"
                 : imageNote.type === "good"
-                ? "good text-[var(--ok)]"
-                : "text-[var(--mut)]"
+                ? "text-[#5f6b35] font-semibold"
+                : "text-[#7b6a5d]"
             }`}
           >
             {imageNote.type === "bad" ? (
@@ -309,59 +347,75 @@ export default function Customizer({ product }: CustomizerProps) {
 
         {/* Quantity Select */}
         <div>
-          <label htmlFor="qty">Quantity</label>
-          <select id="qty" value={quantity} onChange={handleQuantityChange}>
-            <option value={1}>1 piece</option>
-            <option value={2}>2 pieces</option>
-            <option value={3}>3 pieces</option>
-            <option value={4}>4 pieces</option>
-            <option value={5}>5 pieces</option>
+          <label htmlFor="qty" className="text-xs font-bold uppercase tracking-wider text-[#7b6a5d] block mb-1">
+            Quantity
+          </label>
+          <select
+            id="qty"
+            value={quantity}
+            onChange={handleQuantityChange}
+            className="w-full text-xs p-3 bg-[#fbf7f0] border-[1.5px] border-[#e2d5c4] focus:border-[#b4532f] rounded-[16px] text-[#3a2418] focus:outline-none transition-colors"
+          >
+            <option value={1}>1 bespoke piece</option>
+            <option value={2}>2 bespoke pieces</option>
+            <option value={3}>3 bespoke pieces</option>
+            <option value={4}>4 bespoke pieces</option>
+            <option value={5}>5 bespoke pieces</option>
           </select>
         </div>
 
         {/* Price Breakdown */}
-        <div className="line total pt-3 border-t border-[var(--line)]">
+        <div className="pt-3 border-t border-[#e2d5c4] flex justify-between items-center">
           <div>
-            <span className="block text-sm font-normal text-[var(--mut)]">Calculated Total</span>
-            <span className="text-xs text-[var(--mut)]">
+            <span className="block text-xs font-bold text-[#7b6a5d] uppercase tracking-wider">
+              Calculated Total
+            </span>
+            <span className="text-[11px] text-[#7b6a5d]">
               Base {formatLKR(basePriceWithDim)} {text ? "+ Text LKR 400" : ""} {uploadedImage ? "+ Photo LKR 600" : ""}
             </span>
           </div>
-          <span id="pp" className="text-xl font-bold text-[var(--ink)]">
+          <span className="text-2xl font-bold text-[#8a3a1f]">
             {formatLKR(totalPrice)}
           </span>
         </div>
 
-        {/* Actions: Approve Proof then Add to Cart */}
-        <button
-          type="button"
-          className="btn ghost w-full text-sm font-bold flex items-center justify-center gap-1.5"
-          onClick={handleApproveProof}
-          aria-pressed={proofApproved}
-        >
-          {proofApproved ? (
-            <>
-              <CheckCircle2 className="w-4 h-4 text-[var(--ok)]" />
-              <span>Digital Proof Approved ✓</span>
-            </>
-          ) : (
-            <span>Approve Proof Preview</span>
-          )}
-        </button>
+        {/* Actions: Approve Proof Pill then Add to Cart Pill */}
+        <div className="space-y-3 pt-2">
+          <button
+            type="button"
+            className={`w-full py-3 px-6 rounded-full text-xs font-bold border-[1.5px] transition-all cursor-pointer flex items-center justify-center gap-2 ${
+              proofApproved
+                ? "bg-[#5f6b35] text-white border-[#5f6b35] shadow-xs"
+                : "bg-transparent hover:bg-white/60 border-[#3a2418]/30 hover:border-[#3a2418] text-[#3a2418]"
+            }`}
+            onClick={handleApproveProof}
+            aria-pressed={proofApproved}
+          >
+            {proofApproved ? (
+              <>
+                <CheckCircle2 className="w-4 h-4 text-white" />
+                <span>Digital Proof Approved ✓</span>
+              </>
+            ) : (
+              <span>Review &amp; Approve Proof Preview</span>
+            )}
+          </button>
 
-        <button
-          type="button"
-          className="btn gold w-full text-base font-bold shadow-md"
-          disabled={!proofApproved}
-          onClick={handleAddToCart}
-        >
-          Add to Cart
-        </button>
+          <button
+            type="button"
+            disabled={!proofApproved}
+            onClick={handleAddToCart}
+            className="w-full bg-[#b4532f] hover:bg-[#9e4732] disabled:opacity-50 text-[#fff6ea] font-bold text-sm py-3.5 px-6 rounded-full transition-all shadow-md flex items-center justify-center gap-2 group cursor-pointer"
+          >
+            <span>Add to Cart</span>
+            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+          </button>
 
-        <div className="note text-center text-xs">
-          {proofApproved
-            ? "Proof locked. Artisan workshop will receive your exact inscription upon checkout."
-            : "Please review and approve your proof to unlock Add to Cart."}
+          <p className="text-center text-[11px] text-[#7b6a5d]">
+            {proofApproved
+              ? "Proof locked. Artisan workshop will receive your exact inscription upon checkout."
+              : "Please approve your digital proof preview above to unlock Add to Cart."}
+          </p>
         </div>
       </div>
     </div>

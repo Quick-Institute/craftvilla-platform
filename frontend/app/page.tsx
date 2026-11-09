@@ -1,524 +1,754 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { PRODUCTS, ARTISANS } from "@/lib/data";
-import ProductCard from "@/components/ProductCard";
-import { Sparkles, ArrowRight, ShieldCheck, Star, Users, HeartHandshake, PackageCheck, Award } from "lucide-react";
+import Image from "next/image";
+import { useCartStore } from "@/lib/store/cartStore";
+import { useToastStore } from "@/lib/store/toastStore";
+import { useAuthStore } from "@/lib/store/authStore";
+import { useIsMounted } from "@/lib/useIsMounted";
+import {
+  Search,
+  ShoppingBag,
+  Sparkles,
+  ArrowRight,
+  Check,
+  Menu,
+  X,
+  User as UserIcon,
+  RotateCcw,
+} from "lucide-react";
 
-const CATEGORY_SHOWCASE = [
+interface CatalogItem {
+  id: string;
+  name: string;
+  material: string;
+  occasion: string;
+  artisan: string;
+  price: number;
+  image: string;
+  bgTone: string;
+}
+
+const CATALOG_ITEMS: CatalogItem[] = [
   {
-    name: "Woodwork & Carvings",
+    id: "teak-name-plaque",
+    name: "Teak name plaque",
     material: "Wood",
-    emoji: "🪵",
-    bgColor: "#e7cfa8",
-    description: "Solid plantation teak & mahogany hand-carved with traditional joinery.",
-    count: "18+ Pieces",
+    occasion: "Anniversary",
+    artisan: "Kandy Wood Studio",
+    price: 3500,
+    image: "/editorial/hero.jpg",
+    bgTone: "#d9a58a",
   },
   {
-    name: "Resin Floral Art",
-    material: "Resin",
-    emoji: "🔮",
-    bgColor: "#bfe3e0",
-    description: "Crystal resin embedding natural pressed flowers & personal photographs.",
-    count: "12+ Pieces",
-  },
-  {
-    name: "Wheel-Thrown Pottery",
-    material: "Ceramic",
-    emoji: "🪔",
-    bgColor: "#f1c9b2",
-    description: "Terracotta ceremonial lamps and tableware wood-fired in clay kilns.",
-    count: "15+ Pieces",
-  },
-  {
-    name: "Wax-Resist Batik",
+    id: "batik-wall-hanging",
+    name: "Batik wall hanging",
     material: "Batik",
-    emoji: "🎨",
-    bgColor: "#c9d4f0",
-    description: "Hand-waxed textiles dyed with natural botanical and azo-free pigments.",
-    count: "14+ Pieces",
+    occasion: "Birthday",
+    artisan: "Weligama Batik Co.",
+    price: 5200,
+    image: "/editorial/collage-batik.jpg",
+    bgTone: "#b9b48e",
+  },
+  {
+    id: "clay-oil-lamp-set",
+    name: "Clay oil lamp set",
+    material: "Ceramic",
+    occasion: "Corporate",
+    artisan: "Molagoda Potters",
+    price: 2400,
+    image: "/editorial/cat-pottery.jpg",
+    bgTone: "#dcc4bb",
+  },
+  {
+    id: "leather-journal",
+    name: "Leather journal",
+    material: "Leather",
+    occasion: "Birthday",
+    artisan: "Galle Leatherworks",
+    price: 4100,
+    image: "/editorial/collage-leather.jpg",
+    bgTone: "#cdbfb1",
+  },
+  {
+    id: "brass-tea-tray",
+    name: "Brass tea tray",
+    material: "Metal",
+    occasion: "Anniversary",
+    artisan: "Kandyan Brass House",
+    price: 6800,
+    image: "/editorial/product-brass-tray.jpg",
+    bgTone: "#eadccb",
+  },
+  {
+    id: "resin-photo-coaster",
+    name: "Resin photo coaster",
+    material: "Resin",
+    occasion: "Birthday",
+    artisan: "Negombo Resin Lab",
+    price: 1900,
+    image: "/editorial/cat-resin.jpg",
+    bgTone: "#bfe3e0",
+  },
+  {
+    id: "engraved-pen-box",
+    name: "Engraved pen box",
+    material: "Wood",
+    occasion: "Corporate",
+    artisan: "Kandy Wood Studio",
+    price: 2900,
+    image: "/editorial/cat-woodwork.jpg",
+    bgTone: "#d9a58a",
+  },
+  {
+    id: "handloom-table-runner",
+    name: "Handloom table runner",
+    material: "Batik",
+    occasion: "Anniversary",
+    artisan: "Weligama Batik Co.",
+    price: 3300,
+    image: "/editorial/collage-batik.jpg",
+    bgTone: "#d9c9ef",
   },
 ];
 
-const CUSTOMER_REVIEWS = [
+const COLLAGE_ITEMS = [
   {
-    id: 1,
-    name: "Dr. Kavinda Jayawardena",
-    location: "Colombo 07",
-    item: "Teak Name Plaque",
-    rating: 5,
-    date: "October 2026",
-    comment:
-      "Ordered a customized plaque for our clinic anniversary. The live proofing tool gave me total confidence, and the physical teak finish was even more breathtaking in person. Truly master-level craftsmanship.",
+    label: "Wood",
+    origin: "Kandy Studio",
+    image: "/editorial/cat-woodwork.jpg",
+    gridClass: "col-start-1 col-end-2 row-start-1 row-end-3",
   },
   {
-    id: 2,
-    name: "Shenali Senaratne",
-    location: "Kandy",
-    item: "Handcrafted Gift Hamper",
-    rating: 5,
-    date: "October 2026",
-    comment:
-      "Built a custom birthday hamper with a leather journal and resin coasters. The handwritten card and wax seal packaging felt like a royal gift. Delivered right on time across the island!",
+    label: "Batik",
+    origin: "Southern Looms",
+    image: "/editorial/collage-batik.jpg",
+    gridClass: "col-start-2 col-end-3 row-start-1 row-end-4",
   },
   {
-    id: 3,
-    name: "Ruwan Wijesinghe",
-    location: "Galle Fort",
-    item: "Ceramic Oil Lamp Set",
-    rating: 5,
-    date: "September 2026",
-    comment:
-      "Knowing that over 85% of what I paid goes directly to rural potters in Kegalle makes this purchase feel meaningful. The tracking stepper kept me updated through every stage of crafting.",
+    label: "Clay",
+    origin: "Kegalle Kilns",
+    image: "/editorial/cat-pottery.jpg",
+    gridClass: "col-start-3 col-end-4 row-start-1 row-end-2",
   },
+  {
+    label: "Leather",
+    origin: "Galle Fort",
+    image: "/editorial/collage-leather.jpg",
+    gridClass: "col-start-3 col-end-4 row-start-2 row-end-4",
+  },
+];
+
+const FILTER_CHIPS = [
+  "All",
+  "Wood",
+  "Ceramic",
+  "Leather",
+  "Batik",
+  "Metal",
+  "Resin",
+  "Anniversary",
+  "Birthday",
+  "Corporate",
 ];
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<"All" | "Wood" | "Batik" | "Ceramic" | "Resin">("All");
-  const [heroInscription, setHeroInscription] = useState("For Amma, with endless love – Nimal & Family");
+  const mounted = useIsMounted();
+  const { addItem, getTotalCount } = useCartStore();
+  const { showToast } = useToastStore();
+  const { user } = useAuthStore();
 
-  const filteredTrending = activeTab === "All"
-    ? PRODUCTS.slice(0, 6)
-    : PRODUCTS.filter((p) => p.material === activeTab);
+  const [activeFilter, setActiveFilter] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [liveInscription, setLiveInscription] = useState("For Amma, with endless love");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [addedItem, setAddedItem] = useState<string | null>(null);
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterSent, setNewsletterSent] = useState(false);
+
+  const cartCount = mounted ? getTotalCount() : 0;
+
+  // Filter products based on active chip and search query
+  const filteredProducts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return CATALOG_ITEMS.filter((item) => {
+      const matchesFilter =
+        activeFilter === "All" ||
+        item.material === activeFilter ||
+        item.occasion === activeFilter;
+
+      const matchesSearch =
+        !q ||
+        item.name.toLowerCase().includes(q) ||
+        item.material.toLowerCase().includes(q) ||
+        item.artisan.toLowerCase().includes(q) ||
+        item.occasion.toLowerCase().includes(q);
+
+      return matchesFilter && matchesSearch;
+    });
+  }, [activeFilter, searchQuery]);
+
+  const handleQuickAdd = (product: CatalogItem) => {
+    addItem({
+      id: product.id,
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      qty: 1,
+      text: "Standard Studio Edition",
+      font: "Serif",
+      finish: "Natural Sandstone",
+      proofApproved: true,
+      imageUrl: product.image,
+      isHamper: false,
+    });
+    setAddedItem(product.id);
+    showToast(`Added ${product.name} to shopping bag`);
+    setTimeout(() => setAddedItem(null), 2500);
+  };
+
+  const handleNewsletterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newsletterEmail.trim()) {
+      setNewsletterSent(true);
+      showToast("Thank you for joining our journey");
+      setTimeout(() => {
+        setNewsletterEmail("");
+        setNewsletterSent(false);
+      }, 4000);
+    }
+  };
+
+  const scrollToShop = () => {
+    const el = document.getElementById("shop");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   return (
-    <div className="space-y-16">
-      {/* 1. Hero Section */}
-      <section className="hero pt-4 pb-8 items-center">
-        {/* Hero Left Content with Smooth Entrance */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+    <div
+      id="craftvilla-home-page"
+      className="relative w-full min-h-screen bg-[#f4ede2] text-[#3a2418] font-sans antialiased selection:bg-[#b4532f] selection:text-[#fff6ea] overflow-x-hidden"
+      style={{
+        backgroundImage:
+          "repeating-linear-gradient(0deg, rgba(120,90,60,0.03) 0 1px, transparent 1px 4px)",
+      }}
+    >
+      {/* ─────────────────────────────────────────────────────────────
+          ORGANIC BACKGROUND BLOBS (Earthy mood board)
+          Using organic border-radius blobs behind content, not hard rectangles
+          ───────────────────────────────────────────────────────────── */}
+      <div
+        className="absolute top-12 right-[-100px] sm:right-[-140px] w-[340px] sm:w-[460px] h-[340px] sm:h-[460px] bg-[#9aa58a] opacity-20 pointer-events-none z-0 blur-xs"
+        style={{
+          borderRadius: "63% 37% 54% 46% / 55% 48% 52% 45%",
+        }}
+        aria-hidden="true"
+      />
+      <div
+        className="absolute top-[850px] left-[-80px] w-[380px] h-[380px] bg-[#b4532f] opacity-15 pointer-events-none z-0 blur-xs"
+        style={{
+          borderRadius: "48% 52% 38% 62% / 60% 35% 65% 40%",
+        }}
+        aria-hidden="true"
+      />
+      <div
+        className="absolute top-[1800px] right-[-60px] w-[360px] h-[360px] bg-[#9aa58a] opacity-15 pointer-events-none z-0 blur-xs"
+        style={{
+          borderRadius: "58% 42% 63% 37% / 44% 58% 42% 56%",
+        }}
+        aria-hidden="true"
+      />
+
+
+
+      {/* ─────────────────────────────────────────────────────────────
+          MAIN CONTENT CONTAINER
+          ───────────────────────────────────────────────────────────── */}
+      <main className="relative z-10 w-full max-w-[1160px] mx-auto px-4 sm:px-6 pt-6 pb-20 sm:pb-28">
+
+        {/* ───────────────────────────────────────────────────────────
+            1. LARGE HERO WITH PRODUCT STILL-LIFE PHOTOGRAPHY
+            (Form / Clay Aesthetic: 44px radius, organic blob backdrop, real still life)
+            ─────────────────────────────────────────────────────────── */}
+        <section
+          className="relative overflow-hidden rounded-[28px] sm:rounded-[44px] p-6 sm:p-10 lg:p-14 mb-14 shadow-lg border border-[#e2d5c4]/60"
+          style={{
+            background: "linear-gradient(120deg, var(--h1, #eadccb), var(--h2, #cdb4a6))",
+          }}
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--accent)]/15 border border-[var(--accent)]/30 text-[#172554] dark:text-amber-200 text-xs font-bold mb-4">
-            <Sparkles className="w-3.5 h-3.5 text-[#E5A93C]" />
-            <span>Sri Lanka&apos;s Premier Bespoke Craft Platform</span>
-          </div>
-
-          {/* Main Headline with Playfair Display Serif Typography */}
-          <h1
-            className="text-4xl sm:text-5xl lg:text-[56px] font-normal tracking-tight text-[#172554] dark:text-[#f1f2fa] leading-[1.14] mb-4"
-            style={{ fontFamily: "var(--font-playfair), Georgia, serif" }}
-          >
-            Gifts made by hand, with your words in them.
-          </h1>
-
-          <p className="mt-3 text-[var(--mut)] text-lg leading-relaxed max-w-xl">
-            Choose an artisanal masterpiece from a rural Sri Lankan maker, personalize it with custom engravings or etched photos, approve your live digital proof, and track its creation from workshop chisel to your doorstep.
-          </p>
-
-          {/* CTA Buttons */}
-          <div className="flex gap-3 flex-wrap mt-6 items-center">
-            <Link
-              href="/products/teak-name-plaque/customize"
-              className="btn gold flex items-center gap-2 text-sm sm:text-base font-bold px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition-all"
-              style={{ backgroundColor: "#E5A93C", color: "#172554" }}
-            >
-              <span>Personalize a Gift</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link
-              href="/catalog"
-              className="btn ghost text-sm sm:text-base font-semibold px-6 py-3 rounded-xl hover:border-[#172554] transition-all"
-            >
-              Explore All Crafts
-            </Link>
-          </div>
-
-          {/* Interactive Live Inscription Test Box */}
-          <div className="mt-7 max-w-xl">
-            <div className="flex items-center gap-2 p-1.5 pl-3.5 bg-white/85 dark:bg-stone-900/70 backdrop-blur-md rounded-full border border-stone-200/90 dark:border-stone-800 shadow-xs focus-within:ring-2 focus-within:ring-[#E5A93C]/40 focus-within:border-[#E5A93C] transition-all">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-[#172554] dark:text-amber-300 shrink-0 select-none">
-                <Sparkles className="w-3.5 h-3.5 text-[#E5A93C]" />
-                <span className="hidden sm:inline">Try your custom message:</span>
-                <span className="sm:hidden">Try message:</span>
-              </div>
-              <input
-                type="text"
-                value={heroInscription}
-                onChange={(e) => setHeroInscription(e.target.value)}
-                placeholder="Type here..."
-                maxLength={65}
-                className="flex-1 min-w-0 bg-transparent px-2.5 py-1 text-sm text-[#172554] dark:text-stone-100 placeholder:text-stone-400 focus:outline-none border-none font-medium"
-                aria-label="Try your custom message on the plaque"
-              />
-              {heroInscription && (
-                <button
-                  type="button"
-                  onClick={() => setHeroInscription("")}
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 text-xs mr-1 transition-colors"
-                  title="Clear text"
-                  aria-label="Clear custom message"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            {/* Quick Preset Message Chips */}
-            <div className="flex items-center gap-2 mt-2.5 pl-1 flex-wrap">
-              <span className="text-[11px] text-[var(--mut)] font-medium">Try:</span>
-              {[
-                "For Amma, with endless love",
-                "Mr. & Mrs. Perera · Est. 2026",
-                "To My Hero Thatha",
-                "Ayubowan · Galle Fort",
-              ].map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setHeroInscription(preset)}
-                  className="text-[11px] px-2.5 py-0.5 rounded-full bg-stone-200/60 dark:bg-stone-800/60 text-[#172554] dark:text-stone-300 hover:bg-amber-100 hover:text-amber-900 dark:hover:bg-amber-950/60 dark:hover:text-amber-200 transition-colors cursor-pointer border border-transparent hover:border-amber-300/40"
-                >
-                  {preset}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Quick Trust Badges */}
-          <div className="flex items-center gap-6 mt-7 pt-5 border-t border-[var(--line)] text-xs text-[var(--mut)] flex-wrap">
-            <div className="flex items-center gap-1.5 font-medium">
-              <ShieldCheck className="w-4 h-4 text-[var(--ok)]" />
-              <span>Verified Fair-Trade</span>
-            </div>
-            <div className="flex items-center gap-1.5 font-medium">
-              <Award className="w-4 h-4 text-[#E5A93C]" />
-              <span>Approval Before Crafting</span>
-            </div>
-            <div className="flex items-center gap-1.5 font-medium">
-              <PackageCheck className="w-4 h-4 text-[var(--teak)]" />
-              <span>Island-wide Transit</span>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Hero Plaque Container with Fade-in-up Entrance & Floating Breathing Loop */}
-        <motion.div
-          initial={{ opacity: 0, y: 28, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-lg mx-auto"
-        >
-          {/* Continuous breathing float animation: animate y from 0 to -6 to 0 over 4s */}
-          <motion.div
-            animate={{ y: [0, -6, 0] }}
-            transition={{
-              duration: 4,
-              repeat: Infinity,
-              ease: "easeInOut",
+          {/* Organic Sage Blob in Hero (From Reference CSS) */}
+          <div
+            className="absolute left-[-70px] bottom-[-100px] w-[320px] h-[320px] bg-[#9aa58a] opacity-40 pointer-events-none z-0"
+            style={{
+              borderRadius: "63% 37% 54% 46% / 55% 48% 52% 45%",
             }}
-            className="relative"
-          >
-            {/* Floating Badge / Wax-Seal Stamp Accent at Corner */}
-            <div
-              className="absolute top-2 right-2 sm:-top-4 sm:-right-4 z-20 flex items-center justify-center rounded-full shadow-xl shadow-stone-900/30 rotate-6 hover:rotate-0 transition-transform duration-300 select-none cursor-default group w-20 h-20 sm:w-[90px] sm:h-[90px]"
-              style={{
-                background: "radial-gradient(circle at 35% 35%, #a53222 0%, #7d1c10 70%, #4a0d06 100%)",
-                border: "2px solid rgba(245, 158, 11, 0.45)",
-                boxShadow:
-                  "inset 0 1px 2px rgba(255, 255, 255, 0.4), inset 0 -2px 5px rgba(0, 0, 0, 0.65), 0 10px 25px -5px rgba(0, 0, 0, 0.45)",
-              }}
-              title="100% Certified Ceylon Teak"
-            >
-              <div className="w-[66px] h-[66px] sm:w-[76px] sm:h-[76px] rounded-full border border-dashed border-amber-300/60 flex flex-col items-center justify-center p-1 text-center">
-                <span className="text-[6.5px] sm:text-[7.5px] font-bold uppercase tracking-widest text-amber-200/90 leading-none mb-0.5">
-                  100% Certified
-                </span>
-                <span
-                  className="text-[9.5px] sm:text-[11px] font-serif font-black tracking-wider text-amber-100 uppercase leading-none my-0.5"
-                  style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}
-                >
-                  Ceylon
-                </span>
-                <span className="text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider text-amber-300/90 leading-none">
-                  Teak
-                </span>
-                <span className="text-[6px] sm:text-[6.5px] tracking-widest text-amber-200/75 uppercase mt-0.5">
-                  ★ Verified ★
-                </span>
-              </div>
-            </div>
+            aria-hidden="true"
+          />
 
-            {/* Realistic Handcrafted Wooden Plaque Container */}
-            <div
-              className="plaque shadow-2xl shadow-stone-900/15 relative overflow-hidden rounded-2xl sm:rounded-3xl flex flex-col items-center justify-center p-8 sm:p-12 aspect-4/3 text-center"
-              style={{
-                background: "linear-gradient(135deg, #c79054 0%, #ad763e 28%, #8f5727 65%, #b5814b 100%)",
-                boxShadow:
-                  "inset 0 1.5px 2px rgba(255, 255, 255, 0.4), inset 0 -3px 8px rgba(0, 0, 0, 0.45), 0 25px 50px -12px rgba(28, 25, 23, 0.25)",
-              }}
-              aria-label="Live preview of engraved Ceylon teak plaque"
-            >
-              {/* Routed decorative groove border inside plaque */}
-              <div className="absolute inset-3 sm:inset-4 rounded-xl sm:rounded-2xl border border-amber-950/20 pointer-events-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.25)]" />
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+            
+            {/* Left Column (Editorial Headline & Content) */}
+            <div className="lg:col-span-6 flex flex-col items-start">
+              <span className="inline-block uppercase tracking-[0.22em] text-xs font-medium text-[#5b5a3a] mb-3.5">
+                Handmade in Sri Lanka
+              </span>
 
-              {/* Subtle wood grain texture overlay */}
-              <div className="absolute inset-0 opacity-20 pointer-events-none bg-[repeating-linear-gradient(93deg,transparent_0px,transparent_11px,rgba(0,0,0,0.06)_11px,rgba(0,0,0,0.06)_12px,transparent_12px,transparent_24px,rgba(255,255,255,0.04)_24px,rgba(255,255,255,0.04)_25px)]" />
-
-              {/* Brass Fastener Accents at 4 corners */}
-              <div className="absolute top-4 left-4 w-2 h-2 rounded-full bg-amber-300/70 shadow-[0_1px_2px_rgba(0,0,0,0.4)] pointer-events-none" />
-              <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-amber-300/70 shadow-[0_1px_2px_rgba(0,0,0,0.4)] pointer-events-none" />
-              <div className="absolute bottom-4 left-4 w-2 h-2 rounded-full bg-amber-300/70 shadow-[0_1px_2px_rgba(0,0,0,0.4)] pointer-events-none" />
-              <div className="absolute bottom-4 right-4 w-2 h-2 rounded-full bg-amber-300/70 shadow-[0_1px_2px_rgba(0,0,0,0.4)] pointer-events-none" />
-
-              {/* Live Inscription with Real-time Smooth Morphing & Multi-layer Text Shadows */}
-              <motion.div
-                key={heroInscription}
-                initial={{ opacity: 0.85, scale: 0.99 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
-                className="relative z-10 w-full flex flex-col items-center justify-center"
+              <h1
+                className="text-4xl sm:text-5xl lg:text-[76px] leading-[0.96] text-[#8a3a1f] font-medium tracking-tight mb-5"
+                style={{ fontFamily: "var(--font-cormorant), var(--font-playfair), Georgia, serif" }}
               >
-                <span
-                  style={{
-                    fontFamily: "var(--font-caveat), cursive",
-                    textShadow: "1px 1px 1px rgba(255, 255, 255, 0.35), -1px -1px 1px rgba(0, 0, 0, 0.55)",
-                    color: "rgba(45, 20, 5, 0.92)",
-                  }}
-                  className="text-2xl sm:text-3xl lg:text-[42px] leading-[1.2] whitespace-pre-line break-words max-w-[90%] text-center select-none"
-                >
-                  {(() => {
-                    const trimmed = heroInscription.trim();
-                    if (!trimmed) {
-                      return (
-                        <span className="opacity-40 italic text-xl sm:text-2xl">
-                          Type your custom words above...
-                        </span>
-                      );
-                    }
-                    if (trimmed.includes("\n")) {
-                      return trimmed;
-                    }
-                    if (trimmed.includes("–") || trimmed.includes(" - ")) {
-                      const delimiter = trimmed.includes("–") ? "–" : " - ";
-                      const parts = trimmed.split(delimiter);
-                      return (
-                        <>
-                          <span>{parts[0].trim()}</span>
-                          {parts.length > 1 && parts.slice(1).join(delimiter).trim() && (
-                            <>
-                              <br />
-                              <span className="text-xl sm:text-2xl opacity-90 inline-block mt-0.5">
-                                – {parts.slice(1).join(delimiter).trim()}
-                              </span>
-                            </>
-                          )}
-                        </>
-                      );
-                    }
-                    return trimmed;
-                  })()}
-                </span>
-              </motion.div>
+                Objects with
+                <br />
+                a human touch.
+              </h1>
 
-              {/* Subtle bottom finish badge */}
-              <div className="absolute bottom-3 left-4 z-10 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-950/40 backdrop-blur-xs border border-amber-400/20 text-[#FAF8F5] text-[10px] font-medium pointer-events-none">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                <span>Hand-oiled Teak Finish</span>
+              <p className="text-[#7b6a5d] text-base sm:text-lg leading-relaxed max-w-[46ch] mb-7 font-normal">
+                Pick a piece from a Sri Lankan craftsperson, add a name or a photo, check the proof, and follow it from the workshop to your door.
+              </p>
+
+              {/* Action Buttons: Gold Pill & Ghost Pill */}
+              <div className="flex flex-wrap items-center gap-3.5 mb-6">
+                <Link
+                  href="/products/teak-name-plaque/customize"
+                  className="bg-[#b4532f] hover:bg-[#9e4732] text-[#fff6ea] font-bold text-sm sm:text-base px-6 py-3.5 rounded-full transition-all shadow-md inline-flex items-center gap-2 group"
+                >
+                  <span>Personalize a gift</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={scrollToShop}
+                  className="bg-transparent hover:bg-white/50 border-[1.5px] border-[#3a2418]/30 hover:border-[#3a2418] text-[#3a2418] font-bold text-sm sm:text-base px-6 py-3.5 rounded-full transition-all cursor-pointer"
+                >
+                  Browse the catalog
+                </button>
+              </div>
+
+              {/* Live Inscription Tester Pill */}
+              <div className="w-full max-w-md bg-white/75 backdrop-blur-xs p-3.5 rounded-[20px] border border-[#e2d5c4] shadow-xs">
+                <div className="flex items-center justify-between text-[10px] tracking-[0.16em] uppercase text-[#7b6a5d] font-semibold mb-1.5">
+                  <span>Live Engraving Preview</span>
+                  <span className="text-[#b4532f] lowercase font-mono">live proof</span>
+                </div>
+                <div className="flex items-center bg-[#f4ede2] px-3 py-1.5 rounded-full border border-[#e2d5c4] focus-within:border-[#b4532f]">
+                  <Sparkles className="w-3.5 h-3.5 text-[#b4532f] mr-2 shrink-0" />
+                  <input
+                    type="text"
+                    value={liveInscription}
+                    onChange={(e) => setLiveInscription(e.target.value)}
+                    maxLength={36}
+                    placeholder="Type your inscription..."
+                    className="w-full text-xs text-[#3a2418] bg-transparent focus:outline-none border-none p-0 font-sans"
+                  />
+                </div>
               </div>
             </div>
-          </motion.div>
-        </motion.div>
-      </section>
 
-      {/* 2. Category Showcase Grid */}
-      <section className="space-y-6">
-        <div className="flex justify-between items-end flex-wrap gap-4">
-          <div>
-            <h2 className="text-3xl">Artisanal Craft Disciplines</h2>
-            <p className="sub mt-1">Explore authentic traditional media kept alive across generations.</p>
-          </div>
-          <Link href="/catalog" className="text-sm font-bold text-[var(--accent)] hover:underline inline-flex items-center gap-1">
-            Browse full catalog <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
+            {/* Right Column: Real Warmly Lit Product Still-Life Photography (Form / Clay) */}
+            <div className="lg:col-span-6 relative">
+              <div className="relative aspect-[4/3] w-full rounded-[24px] sm:rounded-[36px] overflow-hidden shadow-[0_30px_50px_-28px_rgba(60,30,15,0.6)] border-[2px] border-white/60 bg-[#e2d5c4] group">
+                <Image
+                  src="/editorial/hero-still-life.jpg"
+                  alt="Editorial still life of handmade Ceylon ceramics, wheel-thrown terracotta, and teak wood plaque in warm morning light"
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+                />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          {CATEGORY_SHOWCASE.map((cat) => (
-            <Link
-              key={cat.material}
-              href={`/catalog?material=${cat.material}`}
-              className="panel group hover:border-[var(--ink)] transition-all cursor-pointer flex flex-col justify-between"
-            >
-              <div>
-                <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mb-4 group-hover:scale-105 transition-transform"
-                  style={{ backgroundColor: cat.bgColor }}
-                >
-                  {cat.emoji}
-                </div>
-                <h3 className="text-lg font-bold text-[var(--ink)] group-hover:text-[var(--accent)] transition-colors">
-                  {cat.name}
-                </h3>
-                <p className="text-xs text-[var(--mut)] mt-1.5 leading-relaxed">
-                  {cat.description}
-                </p>
-              </div>
-              <div className="mt-4 pt-3 border-t border-[var(--line)] flex justify-between items-center text-xs font-semibold text-[var(--mut)]">
-                <span>{cat.count}</span>
-                <span className="group-hover:translate-x-1 transition-transform text-[var(--ink)]">Explore →</span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* 3. Featured Verified Artisans */}
-      <section className="space-y-6">
-        <div className="flex justify-between items-end flex-wrap gap-4">
-          <div>
-            <h2 className="text-3xl">Meet Our Master Makers</h2>
-            <p className="sub mt-1">Every artisan is verified for heritage technique, ethics, and material purity.</p>
-          </div>
-          <Link href="/artisans" className="text-sm font-bold text-[var(--accent)] hover:underline inline-flex items-center gap-1">
-            View all 6 artisans <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {ARTISANS.slice(0, 3).map((artisan) => (
-            <article key={artisan.id} className="card p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="av w-12 h-12 text-lg font-bold">
-                  {artisan.name.charAt(0)}
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-[var(--ink)] leading-snug">
-                    {artisan.name}
-                  </h3>
-                  <div className="flex items-center gap-1 text-xs text-[var(--mut)]">
-                    <span>{artisan.location}</span>
-                    <span>·</span>
-                    <span className="flex items-center text-[var(--accent)] font-semibold">
-                      <Star className="w-3 h-3 fill-current inline mr-0.5" />
-                      {artisan.rating}
-                    </span>
+                {/* Floating Tactile Inscribed Keepsake Plaque Overlay */}
+                <div className="absolute bottom-4 left-4 right-4 sm:right-auto sm:max-w-xs bg-[#fbf7f0]/95 backdrop-blur-md p-4 rounded-[22px] border border-[#e2d5c4] shadow-xl">
+                  <div className="flex items-center justify-between text-[9px] tracking-[0.2em] uppercase text-[#5b5a3a] font-semibold pb-1 border-b border-[#e2d5c4] mb-2">
+                    <span>CEYLON TEAK PROOF</span>
+                    <span>EST. 2026</span>
+                  </div>
+                  <p
+                    className="text-base sm:text-lg text-[#3a2418] italic text-center py-0.5 leading-snug truncate"
+                    style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+                  >
+                    &ldquo;{liveInscription || "For Amma, with endless love"}&rdquo;
+                  </p>
+                  <div className="flex items-center justify-between pt-1.5 text-[10px] text-[#7b6a5d] uppercase tracking-wider border-t border-[#e2d5c4]/50 mt-1.5">
+                    <span>Hand-oiled Teak</span>
+                    <Link
+                      href="/products/teak-name-plaque/customize"
+                      className="text-[#b4532f] font-semibold hover:underline"
+                    >
+                      Customize →
+                    </Link>
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-[var(--mut)] leading-relaxed mb-4 flex-1">
-                {artisan.bio}
-              </p>
-              <div className="pt-3 border-t border-[var(--line)] flex items-center justify-between">
-                <span className="text-xs text-[var(--ok)] font-semibold">
-                  ✓ Verified Studio
-                </span>
-                <Link
-                  href={`/artisans/${artisan.slug}`}
-                  className="btn ghost text-xs py-1.5 px-3"
-                >
-                  View Pieces
-                </Link>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+            </div>
 
-      {/* 4. Trending Bespoke Gifts */}
-      <section className="space-y-6">
-        <div className="flex justify-between items-end flex-wrap gap-4">
-          <div>
-            <h2 className="text-3xl">Trending Bespoke Gifts</h2>
-            <p className="sub mt-1">Personalized with names, dates, or photos before crafting.</p>
           </div>
-          {/* Material Filter Tabs */}
-          <div className="flex gap-2 flex-wrap">
-            {(["All", "Wood", "Batik", "Ceramic", "Resin"] as const).map((tab) => (
+        </section>
+
+        {/* ───────────────────────────────────────────────────────────
+            2. CATALOG SECTION (Filter by Material / Occasion & Real Photos)
+            ─────────────────────────────────────────────────────────── */}
+        <section id="shop" className="space-y-6 pt-2">
+          
+          {/* Section Header */}
+          <div>
+            <h2
+              className="text-3xl sm:text-4xl text-[#3a2418] font-medium tracking-tight mb-1"
+              style={{ fontFamily: "var(--font-cormorant), var(--font-playfair), Georgia, serif" }}
+            >
+              Catalog
+            </h2>
+            <p className="text-sm text-[#7b6a5d]">
+              Filter by material or occasion.
+            </p>
+          </div>
+
+          {/* Search Bar (Rounded 12-16px, background surface) */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7b6a5d]" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search gifts, materials or artisans..."
+              className="w-full pl-11 pr-10 py-3.5 bg-[#fbf7f0] border-[1.5px] border-[#e2d5c4] focus:border-[#b4532f] rounded-[16px] text-sm text-[#3a2418] placeholder:text-[#7b6a5d]/70 focus:outline-none transition-colors shadow-xs"
+              aria-label="Search catalog"
+            />
+            {searchQuery && (
               <button
-                key={tab}
                 type="button"
-                className={`chip text-xs py-1 px-3 ${activeTab === tab ? "active font-bold" : ""}`}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-[#7b6a5d] hover:text-[#3a2418] p-1"
+                aria-label="Clear search"
               >
-                {tab}
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Filter Chips (Pill Buttons 99px radius) */}
+          <div className="flex gap-2 flex-wrap pb-2">
+            {FILTER_CHIPS.map((chip) => (
+              <button
+                key={chip}
+                type="button"
+                onClick={() => setActiveFilter(chip)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all cursor-pointer border-[1.5px] ${
+                  activeFilter === chip
+                    ? "bg-[#3a2418] text-[#f4ede2] border-[#3a2418] shadow-xs"
+                    : "bg-[#fbf7f0] text-[#7b6a5d] border-[#e2d5c4] hover:border-[#3a2418] hover:text-[#3a2418]"
+                }`}
+              >
+                {chip}
               </button>
             ))}
           </div>
-        </div>
 
-        <div className="grid">
-          {filteredTrending.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
+          {/* Product Grid: Soft Rounded Cards (30px radius) with Real Photography (NO EMOJIS) */}
+          {filteredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {filteredProducts.map((p) => (
+                <article
+                  key={p.id}
+                  className="bg-[#fbf7f0] border-[1.5px] border-[#e2d5c4] rounded-[30px] overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
+                >
+                  {/* Photo Frame (Real warmly lit photography thumbnail) */}
+                  <Link
+                    href={`/products/${p.id}/customize`}
+                    className="relative m-2 h-[200px] rounded-[24px] overflow-hidden bg-[#e2d5c4] block group"
+                  >
+                    <Image
+                      src={p.image}
+                      alt={p.name}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
 
-      {/* 5. Social Proof & Impact Statistics */}
-      <section className="panel bg-[var(--ink)] text-[var(--bg)] p-8 md:p-12 rounded-3xl relative overflow-hidden">
-        <div className="max-w-2xl mb-8">
-          <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent)] block mb-1">
-            Empowering Rural Sri Lanka
-          </span>
-          <h2 className="text-2xl md:text-4xl text-[var(--bg)] font-serif">
-            Every bespoke order directly fuels generational heritage workshops.
-          </h2>
-        </div>
+                  {/* Card Info */}
+                  <div className="p-4 pt-2 flex-1 flex flex-col gap-1.5 justify-between">
+                    <div>
+                      <span className="self-start inline-block bg-[#b4532f]/15 text-[#8a3a1f] rounded-[6px] px-2 py-0.5 text-xs font-bold mb-1">
+                        Customizable
+                      </span>
+                      <h3
+                        className="text-xl sm:text-[22px] font-semibold text-[#3a2418] leading-snug truncate"
+                        style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+                      >
+                        <Link href={`/products/${p.id}/customize`} className="hover:text-[#b4532f] transition-colors">
+                          {p.name}
+                        </Link>
+                      </h3>
+                      <small className="text-xs text-[#7b6a5d] block">
+                        {p.artisan} · {p.material}
+                      </small>
+                    </div>
 
-        {/* Impact Numbers */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 py-6 border-y border-[var(--bg)]/15 mb-8">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Users className="w-5 h-5 text-[var(--accent)]" />
-              <b className="text-3xl font-serif text-[var(--bg)]">50+</b>
-            </div>
-            <p className="text-xs text-[var(--bg)]/70">Rural Artisan Families Sustained</p>
-          </div>
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <PackageCheck className="w-5 h-5 text-[var(--ok)]" />
-              <b className="text-3xl font-serif text-[var(--bg)]">1,400+</b>
-            </div>
-            <p className="text-xs text-[var(--bg)]/70">Custom Proofs Approved &amp; Delivered</p>
-          </div>
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <HeartHandshake className="w-5 h-5 text-[var(--accent)]" />
-              <b className="text-3xl font-serif text-[var(--bg)]">85%+</b>
-            </div>
-            <p className="text-xs text-[var(--bg)]/70">Proceeds Direct to Craftsperson</p>
-          </div>
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Star className="w-5 h-5 text-amber-300 fill-current" />
-              <b className="text-3xl font-serif text-[var(--bg)]">4.9 / 5</b>
-            </div>
-            <p className="text-xs text-[var(--bg)]/70">Customer Happiness Rating</p>
-          </div>
-        </div>
+                    {/* Bottom Row: Price & Customize Button */}
+                    <div className="pt-3 mt-2 border-t border-[#e2d5c4]/60 flex items-center justify-between gap-2">
+                      <span className="text-sm font-semibold text-[#3a2418]">
+                        From LKR {p.price.toLocaleString()}
+                      </span>
 
-        {/* Customer Testimonial Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {CUSTOMER_REVIEWS.map((review) => (
-            <div
-              key={review.id}
-              className="bg-[var(--surface)] text-[var(--ink)] p-5 rounded-2xl shadow-sm flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex text-amber-500">
-                    {Array.from({ length: review.rating }).map((_, i) => (
-                      <Star key={i} className="w-3.5 h-3.5 fill-current" />
-                    ))}
+                      <div className="flex items-center gap-1.5">
+                        <Link
+                          href={`/products/${p.id}/customize`}
+                          className="bg-[#3a2418] hover:bg-[#b4532f] text-[#f4ede2] text-xs font-bold px-3.5 py-1.5 rounded-full transition-colors"
+                        >
+                          Customize
+                        </Link>
+
+                        <button
+                          type="button"
+                          onClick={() => handleQuickAdd(p)}
+                          className={`w-7 h-7 rounded-full border border-[#e2d5c4] flex items-center justify-center transition-all cursor-pointer ${
+                            addedItem === p.id
+                              ? "bg-[#5f6b35] border-[#5f6b35] text-white"
+                              : "text-[#7b6a5d] hover:bg-[#3a2418] hover:text-white hover:border-[#3a2418]"
+                          }`}
+                          aria-label={`Add ${p.name} to cart`}
+                        >
+                          {addedItem === p.id ? (
+                            <Check className="w-3.5 h-3.5" />
+                          ) : (
+                            <ShoppingBag className="w-3 h-3" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-[11px] text-[var(--ok)] font-bold">✓ Verified Purchase</span>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-[#fbf7f0] border-[1.5px] border-[#e2d5c4] rounded-[28px] py-14 text-center px-4">
+              <p className="text-sm text-[#7b6a5d] mb-4">
+                No gifts match your search. Clear the search or pick another filter.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveFilter("All");
+                  setSearchQuery("");
+                }}
+                className="bg-[#3a2418] text-[#f4ede2] text-xs font-bold px-5 py-2.5 rounded-full"
+              >
+                Reset all filters
+              </button>
+            </div>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────
+              3. DEEP RUST SECTION (#7a2410, 48px radius)
+              (Lepka Ceramic School: rounded-48px, mosaic of 4 rounded photo tiles)
+              ───────────────────────────────────────────────────────── */}
+          <section className="mt-14 bg-[#7a2410] text-[#f4ede2] rounded-[32px] sm:rounded-[48px] p-6 sm:p-10 lg:p-14 relative overflow-hidden shadow-xl">
+            {/* Subtle atmospheric organic glow */}
+            <div
+              className="absolute -top-20 -right-20 w-80 h-80 bg-[#b4532f] opacity-25 rounded-full blur-2xl pointer-events-none"
+              aria-hidden="true"
+            />
+
+            {/* Lead Statement */}
+            <p
+              className="max-w-[34ch] mb-8 font-normal leading-[1.2] text-2xl sm:text-3xl lg:text-[34px] ml-auto text-right"
+              style={{ fontFamily: "var(--font-cormorant), var(--font-playfair), Georgia, serif" }}
+            >
+              Every week our makers carve, throw, weave and stitch pieces that carry your words, your faces and your stories.
+            </p>
+
+            {/* Photo Collage of 4 Rounded Tiles (30px radius, Real Photography - NO EMOJIS) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 sm:grid-rows-3 gap-3.5 h-auto sm:h-[360px]">
+              {COLLAGE_ITEMS.map((tile) => (
+                <div
+                  key={tile.label}
+                  className={`relative overflow-hidden rounded-[30px] min-h-[140px] sm:min-h-0 border border-white/20 shadow-md group ${tile.gridClass}`}
+                >
+                  <Image
+                    src={tile.image}
+                    alt={tile.label}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  {/* Subtle gradient for text contrast */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+                  {/* Tile Label */}
+                  <div className="absolute left-4 bottom-3 text-left">
+                    <span className="text-[11px] font-mono tracking-[0.16em] uppercase text-[#fff6ea] font-medium block">
+                      {tile.label}
+                    </span>
+                    <span className="text-[9px] text-[#f4ede2]/75 uppercase tracking-wider">
+                      {tile.origin}
+                    </span>
+                  </div>
                 </div>
-                <p className="text-xs italic text-[var(--ink)] leading-relaxed mb-4">
-                  &ldquo;{review.comment}&rdquo;
-                </p>
+              ))}
+            </div>
+
+            {/* Bottom Caption */}
+            <p className="max-w-[32ch] mt-6 opacity-90 text-sm font-light leading-relaxed">
+              Warm makers, cozy workshops, and a proof that is always yours to approve.
+            </p>
+          </section>
+
+          {/* ─────────────────────────────────────────────────────────
+              4. TRIO OUTLINED ICON CARDS (40px radius, uppercase labels)
+              (Lepka Ceramic School: border-1.5 solid #8a3a1f, color #8a3a1f, rounded-[40px])
+              ───────────────────────────────────────────────────────── */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6">
+            
+            {/* Card 1: Local Workshops */}
+            <div className="border-[1.5px] border-[#8a3a1f] text-[#8a3a1f] rounded-[40px] p-7 text-center bg-[#fbf7f0]/40 hover:bg-[#fbf7f0] transition-colors flex flex-col items-center justify-center">
+              <svg
+                viewBox="0 0 48 48"
+                width="46"
+                height="46"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                className="mb-2"
+              >
+                <path d="M8 42V20l16-11 16 11v22zM18 42V30h12v12M20 22h8" />
+              </svg>
+              <b className="block mt-2 uppercase tracking-[0.08em] text-[13px] font-bold text-[#8a3a1f]">
+                Made in local workshops
+              </b>
+              <small className="text-xs text-[#7b6a5d] mt-0.5">
+                Every maker is verified
+              </small>
+            </div>
+
+            {/* Card 2: Proof Before Crafting */}
+            <div className="border-[1.5px] border-[#8a3a1f] text-[#8a3a1f] rounded-[40px] p-7 text-center bg-[#fbf7f0]/40 hover:bg-[#fbf7f0] transition-colors flex flex-col items-center justify-center">
+              <svg
+                viewBox="0 0 48 48"
+                width="46"
+                height="46"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                className="mb-2"
+              >
+                <path d="M8 12h32v28H8zM8 20h32M16 6v10M32 6v10M24 36l-6-6a3.6 3.6 0 015-5l1 1 1-1a3.6 3.6 0 015 5z" />
+              </svg>
+              <b className="block mt-2 uppercase tracking-[0.08em] text-[13px] font-bold text-[#8a3a1f]">
+                Proof before crafting
+              </b>
+              <small className="text-xs text-[#7b6a5d] mt-0.5">
+                Nothing starts until you approve
+              </small>
+            </div>
+
+            {/* Card 3: 1–5 Days to Craft */}
+            <div className="border-[1.5px] border-[#8a3a1f] text-[#8a3a1f] rounded-[40px] p-7 text-center bg-[#fbf7f0]/40 hover:bg-[#fbf7f0] transition-colors flex flex-col items-center justify-center">
+              <svg
+                viewBox="0 0 48 48"
+                width="46"
+                height="46"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                className="mb-2"
+              >
+                <path d="M18 6h12M20 6c0 9-9 11-9 22 0 8 6 14 13 14s13-6 13-14c0-11-9-13-9-22" />
+              </svg>
+              <b className="block mt-2 uppercase tracking-[0.08em] text-[13px] font-bold text-[#8a3a1f]">
+                1–5 days to craft
+              </b>
+              <small className="text-xs text-[#7b6a5d] mt-0.5">
+                Track every stage live
+              </small>
+            </div>
+
+          </div>
+
+          {/* ─────────────────────────────────────────────────────────
+              5. OUR PROCESS BAND (Olive / Terracotta, 48px radius)
+              (Form Clay Process band with Cormorant Garamond title & stats)
+              ───────────────────────────────────────────────────────── */}
+          <section className="mt-14 rounded-[32px] sm:rounded-[48px] bg-[#5b5a3a] text-[#f4ede2] grid grid-cols-1 lg:grid-cols-12 gap-8 p-6 sm:p-10 lg:p-14 shadow-lg">
+            
+            {/* Left Column */}
+            <div className="lg:col-span-7 flex flex-col justify-center items-start">
+              <span className="uppercase tracking-[0.22em] text-xs font-medium text-[#e6d9b8] mb-2.5">
+                Our process
+              </span>
+
+              <h2
+                className="text-3xl sm:text-4xl text-[#f4ede2] font-normal leading-tight mb-3"
+                style={{ fontFamily: "var(--font-cormorant), var(--font-playfair), Georgia, serif" }}
+              >
+                Rooted in natural materials.
+              </h2>
+
+              <p className="text-[#f4ede2]/85 text-sm sm:text-base leading-relaxed max-w-[44ch] mb-6 font-light">
+                Every piece is shaped by a maker we know by name, from teak, clay, brass and cloth, then finished with your words.
+              </p>
+
+              <Link
+                href="/artisans"
+                className="bg-[#b4532f] hover:bg-[#9e4732] text-[#fff6ea] font-bold text-xs uppercase tracking-wider px-6 py-3 rounded-full transition-all shadow-sm"
+              >
+                Meet the makers
+              </Link>
+            </div>
+
+            {/* Right Column: Values */}
+            <div className="lg:col-span-5 grid gap-3 content-center">
+              <div className="border border-[#f4ede2]/30 p-3.5 sm:p-4 rounded-[16px] bg-black/10">
+                <b
+                  className="block text-2xl sm:text-3xl text-[#f4ede2] font-normal"
+                  style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+                >
+                  1–5 days
+                </b>
+                <span className="text-xs text-[#f4ede2]/80 uppercase tracking-wider">
+                  crafting time
+                </span>
               </div>
-              <div className="pt-2 border-t border-[var(--line)] text-xs">
-                <p className="font-bold text-[var(--ink)]">{review.name}</p>
-                <p className="text-[11px] text-[var(--mut)]">{review.item} · {review.location}</p>
+
+              <div className="border border-[#f4ede2]/30 p-3.5 sm:p-4 rounded-[16px] bg-black/10">
+                <b
+                  className="block text-2xl sm:text-3xl text-[#f4ede2] font-normal"
+                  style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+                >
+                  100%
+                </b>
+                <span className="text-xs text-[#f4ede2]/80 uppercase tracking-wider">
+                  proofs approved by you
+                </span>
+              </div>
+
+              <div className="border border-[#f4ede2]/30 p-3.5 sm:p-4 rounded-[16px] bg-black/10">
+                <b
+                  className="block text-2xl sm:text-3xl text-[#f4ede2] font-normal"
+                  style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+                >
+                  Fair
+                </b>
+                <span className="text-xs text-[#f4ede2]/80 uppercase tracking-wider">
+                  low commission for makers
+                </span>
               </div>
             </div>
-          ))}
-        </div>
-      </section>
+
+          </section>
+
+        </section>
+      </main>
     </div>
   );
 }
